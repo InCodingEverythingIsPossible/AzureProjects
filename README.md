@@ -1,2 +1,2 @@
 # DatabricksSample
-Sample Databricks Notebooks
+Sample Databricks Notebooks and Settings
