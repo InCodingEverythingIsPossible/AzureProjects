@@ -5,7 +5,7 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Importing configuration notebooks for generic cases
+# MAGIC # Importing configuration notebook for generic cases
 
 # COMMAND ----------
 
@@ -148,6 +148,7 @@ display(race_circuits_df)
 # MAGIC # Cross Join race_df with circuit_df 
 # MAGIC
 # MAGIC - each record from the left dataframe is join to the right dataframe
+# MAGIC - in simply words it is cartesian
 # MAGIC
 
 # COMMAND ----------

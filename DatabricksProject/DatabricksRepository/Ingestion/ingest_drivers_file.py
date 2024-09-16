@@ -14,6 +14,11 @@ data_source = dbutils.widgets.get("data_source")
 
 # COMMAND ----------
 
+dbutils.widgets.text("file_date", "2021-03-21")
+file_date = dbutils.widgets.get("file_date")
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Importing configuration and common_functions notebooks for generic cases
 
@@ -57,7 +62,7 @@ drivers_schema = StructType(fields=[
 
 drivers_df = spark.read \
     .schema(drivers_schema) \
-    .json(f"{raw_folder_path}/drivers.json")
+    .json(f"{raw_folder_path}/{file_date}/drivers.json")
 
 # COMMAND ----------
 
@@ -77,9 +82,10 @@ drivers_ingestion_date_df = add_ingestion_date(drivers_df)
 from pyspark.sql.functions import concat, col, lit
 
 drivers_with_columns_df = drivers_ingestion_date_df.withColumnRenamed("driverId", "driver_id") \
-                                    .withColumnRenamed("driverDef", "driver_def") \
+                                    .withColumnRenamed("driverRef", "driver_ref") \
                                     .withColumn("name", concat(col("name.forename"), lit(" "), concat(col("name.surname")) )) \
-                                    .withColumn("data_source", lit(data_source)) 
+                                    .withColumn("data_source", lit(data_source)) \
+                                    .withColumn("file_date", lit(file_date))
 
 # COMMAND ----------
 
@@ -101,12 +107,30 @@ drivers_final_df = drivers_with_columns_df.drop(col("url"))
 
 # COMMAND ----------
 
-drivers_final_df.write.mode("overwrite") \
-                        .parquet(f"{processed_folder_path}/drivers")
+# drivers_final_df.write.mode("overwrite") \
+#                        .format("parquet") \
+#                        .saveAsTable("f1_processed.drivers")
 
 # COMMAND ----------
 
-display(spark.read.parquet(f"{processed_folder_path}/drivers"))
+# display(spark.read.parquet(f"{processed_folder_path}/drivers"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Write dataframe to the container in Delta format
+
+# COMMAND ----------
+
+drivers_final_df.write.mode("overwrite") \
+                       .format("delta") \
+                       .saveAsTable("f1_processed.drivers")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * 
+# MAGIC FROM f1_processed.drivers;
 
 # COMMAND ----------
 

@@ -14,6 +14,11 @@ data_source = dbutils.widgets.get("data_source")
 
 # COMMAND ----------
 
+dbutils.widgets.text("file_date", "2021-03-21")
+file_date = dbutils.widgets.get("file_date")
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Importing configuration and common_functions notebooks for generic cases
 
@@ -38,7 +43,7 @@ constructors_schema = "constructorId INT, constructorRef STRING, name STRING, na
 
 constructors_df = spark.read \
     .schema(constructors_schema) \
-    .json(f"{raw_folder_path}/constructors.json")
+    .json(f"{raw_folder_path}/{file_date}/constructors.json")
 
 
 # COMMAND ----------
@@ -81,7 +86,8 @@ from pyspark.sql.functions import lit
 
 constructors_final_df = constructors_ingestion_date_df.withColumnRenamed("constructorId", "constructor_id") \
                                                 .withColumnRenamed("constructorRef", "constructor_ref") \
-                                                .withColumn("data_source", lit(data_source)) 
+                                                .withColumn("data_source", lit(data_source)) \
+                                                .withColumn("file_date", lit(file_date))
         
 
 # COMMAND ----------
@@ -95,12 +101,30 @@ display(constructors_final_df)
 
 # COMMAND ----------
 
-constructors_final_df.write.mode("overwrite") \
-                            .parquet(f"{processed_folder_path}/constructors")
+# constructors_final_df.write.mode("overwrite") \
+#                        .format("parquet") \
+#                        .saveAsTable("f1_processed.constructors")
 
 # COMMAND ----------
 
-display(spark.read.parquet(f"{processed_folder_path}/constructors"))
+# display(spark.read.parquet(f"{processed_folder_path}/constructors"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Write dataframe to the container in Delta format
+
+# COMMAND ----------
+
+constructors_final_df.write.mode("overwrite") \
+                       .format("delta") \
+                       .saveAsTable("f1_processed.constructors")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * 
+# MAGIC FROM f1_processed.constructors;
 
 # COMMAND ----------
 

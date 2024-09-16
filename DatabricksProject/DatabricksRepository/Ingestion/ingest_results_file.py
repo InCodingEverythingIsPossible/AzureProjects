@@ -14,6 +14,11 @@ data_source = dbutils.widgets.get("data_source")
 
 # COMMAND ----------
 
+dbutils.widgets.text("file_date", "2021-03-28")
+file_date = dbutils.widgets.get("file_date")
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Importing configuration and common_functions notebooks for generic cases
 
@@ -59,7 +64,7 @@ results_schema = StructType(fields=[
 
 results_df = spark.read \
     .schema(results_schema) \
-    .json(f"{raw_folder_path}/results.json")
+    .json(f"{raw_folder_path}/{file_date}/results.json")
 
 
 # COMMAND ----------
@@ -99,7 +104,17 @@ results_final_df = results_ingestion_date_df.withColumnRenamed("constructorId", 
                                         .withColumnRenamed("positionText", "position_text") \
                                         .withColumnRenamed("raceId", "race_id") \
                                         .withColumnRenamed("resultId", "result_id") \
-                                        .withColumn("data_source", lit(data_source))            
+                                        .withColumn("data_source", lit(data_source)) \
+                                        .withColumn("file_date", lit(file_date))            
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #Deduplication the dataframe
+
+# COMMAND ----------
+
+results_deduped_df = results_final_df.dropDuplicates(["race_id", "driver_id"])
 
 # COMMAND ----------
 
@@ -108,16 +123,69 @@ display(results_final_df)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Write dataframe to the container in Parquet format
+# MAGIC # Method 1 of incremental load on Parquet file
+# MAGIC - 1st cell -> drop partition if already exists in container to avoid duplicates
+# MAGIC - 2nd cell -> write dataframe to the container in Parquet format with append mode
+# MAGIC - less efficient 
 
 # COMMAND ----------
 
-results_final_df.write.mode("overwrite") \
-                        .parquet(f"{processed_folder_path}/results")
+# for race_id_list in results_deduped_df.select("race_id").distinct().collect():
+#     if (spark._jsparkSession.catalog().tableExists("f1_processed.results")):
+#         spark.sql(f"ALTER TABLE f1_processed.results DROP IF EXISTS PARTITION (race_id = {race_id_list.race_id})")
 
 # COMMAND ----------
 
-display(spark.read.parquet(f"{processed_folder_path}/results"))
+# results_deduped_df.write.mode("append") \
+#                        .partitionBy("race_id") \
+#                        .format("parquet") \
+#                        .saveAsTable("f1_processed.results")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Method 2 of incremental load on Parquet file
+# MAGIC - 1st cell -> function which sort dataframe (partition field need to be the last in the dataframe)
+# MAGIC - 2nd cell -> function which create managed table or overwrite partition specified by input
+# MAGIC - more efficient 
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC --DROP TABLE f1_processed.results;
+
+# COMMAND ----------
+
+# sorted_df = sortForIncrementalLoad(input_df=results_deduped_df, partitionField="race_id")
+
+# COMMAND ----------
+
+# incrementalLoad(input_df=sorted_df, databaseName="f1_processed", tableName="results", partitionField="race_id")
+
+# COMMAND ----------
+
+# display(spark.read.parquet(f"{processed_folder_path}/results"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Method 3 of incremental load on Delta file
+# MAGIC - call a function which create managed table or merge data (insert or update data based on merge key)
+# MAGIC - best solution of that 3 methods
+
+# COMMAND ----------
+
+mergeCondition = """target.result_id = source.result_id AND 
+                    target.race_id = source.race_id"""
+
+incrementalLoadDelta(input_df=results_deduped_df, databaseName="f1_processed", tableName="results", 
+                     folderPath=processed_folder_path, partitionField="race_id", mergeCondition=mergeCondition)
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * 
+# MAGIC FROM f1_processed.results;
 
 # COMMAND ----------
 
@@ -127,3 +195,11 @@ display(spark.read.parquet(f"{processed_folder_path}/results"))
 # COMMAND ----------
 
 dbutils.notebook.exit("Success")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT race_id, COUNT(1)
+# MAGIC FROM f1_processed.results
+# MAGIC GROUP BY race_id
+# MAGIC ORDER BY race_id DESC;

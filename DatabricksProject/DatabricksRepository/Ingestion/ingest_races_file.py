@@ -14,6 +14,11 @@ data_source = dbutils.widgets.get("data_source")
 
 # COMMAND ----------
 
+dbutils.widgets.text("file_date", "2021-03-21")
+file_date = dbutils.widgets.get("file_date")
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Importing configuration and common_functions notebooks for generic cases
 
@@ -50,7 +55,7 @@ races_schema = StructType(fields=[
 races_df = spark.read \
     .option("header", True) \
     .schema(races_schema) \
-    .csv(f"{raw_folder_path}/races.csv")
+    .csv(f"{raw_folder_path}/{file_date}/races.csv")
 
 # COMMAND ----------
 
@@ -71,7 +76,8 @@ races_ingestion_date_df = add_ingestion_date(races_df)
 from pyspark.sql.functions import lit, concat, to_timestamp, col
 
 races_new_fields_df = races_ingestion_date_df.withColumn("race_timestamp", to_timestamp(concat(col("date"),lit(" "), col("time")), "yyyy-MM-dd HH:mm:ss")) \
-                                                .withColumn("data_source", lit(data_source)) 
+                                                .withColumn("data_source", lit(data_source)) \
+                                                .withColumn("file_date", lit(file_date))
                     
 
 # COMMAND ----------
@@ -89,7 +95,8 @@ display(races_new_fields_df.printSchema())
 from pyspark.sql.functions import col
 
 races_final_df = races_new_fields_df.select(col("raceId").alias("race_id"), col("year").alias("race_year"), col("round"), 
-                                            col("circuitId").alias("circuit_id"), col("name"), col("race_timestamp"), col("ingestion_date"), col("data_source"))
+                                            col("circuitId").alias("circuit_id"), col("name"), col("race_timestamp"), 
+                                            col("ingestion_date"), col("data_source"), col("file_date"))
 
 # COMMAND ----------
 
@@ -99,17 +106,35 @@ display(races_final_df)
 
 # MAGIC %md 
 # MAGIC
-# MAGIC # Write dataframe to the container in Parquet format partitioned by year
+# MAGIC # Write dataframe to the container in Parquet format 
+
+# COMMAND ----------
+
+# races_final_df.write.mode("overwrite") \
+#                        .format("parquet") \
+#                        .saveAsTable("f1_processed.races")
+
+# COMMAND ----------
+
+# display(spark.read.parquet(f"{processed_folder_path}/races"))
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC
+# MAGIC # Write dataframe to the container in Delta format 
 
 # COMMAND ----------
 
 races_final_df.write.mode("overwrite") \
-                    .partitionBy("race_year") \
-                    .parquet(f"{processed_folder_path}/races")
+                       .format("delta") \
+                       .saveAsTable("f1_processed.races")
 
 # COMMAND ----------
 
-display(spark.read.parquet(f"{processed_folder_path}/races"))
+# MAGIC %sql
+# MAGIC SELECT * 
+# MAGIC FROM f1_processed.races;
 
 # COMMAND ----------
 

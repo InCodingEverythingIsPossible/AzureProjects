@@ -52,3 +52,16 @@ mount_adls('formula1pw', 'silver')
 # COMMAND ----------
 
 mount_adls('formula1pw', 'gold')
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #Mount Demo Container
+
+# COMMAND ----------
+
+mount_adls('formula1pw', 'demo')
+
+# COMMAND ----------
+
+dbutils.fs.ls('/mnt/formula1pw/demo')

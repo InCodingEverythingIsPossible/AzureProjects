@@ -5,7 +5,7 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Importing configuration notebooks for generic cases
+# MAGIC # Importing configuration notebook for generic cases
 
 # COMMAND ----------
 

@@ -15,6 +15,11 @@ data_source = dbutils.widgets.get("data_source")
 
 # COMMAND ----------
 
+dbutils.widgets.text("file_date", "2021-03-21")
+file_date = dbutils.widgets.get("file_date")
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Importing configuration and common_functions notebooks for generic cases
 
@@ -39,7 +44,7 @@ data_source = dbutils.widgets.get("data_source")
 circuits_df = spark.read \
     .option("header", True) \
     .option("inferSchema", True) \
-    .csv(f"{raw_folder_path}/circuits.csv")
+    .csv(f"{raw_folder_path}/{file_date}/circuits.csv")
 
 # COMMAND ----------
 
@@ -58,7 +63,7 @@ circuits_schema = "circuitId INT, circuitRef STRING, name STRING, location STRIN
 circuits_df = spark.read \
     .option("header", True) \
     .schema(circuits_schema) \
-    .csv(f"{raw_folder_path}/circuits.csv")
+    .csv(f"{raw_folder_path}/{file_date}/circuits.csv")
 
 # COMMAND ----------
 
@@ -89,7 +94,7 @@ circuits_schema = StructType(fields=[
 circuits_df = spark.read \
     .option("header", True) \
     .schema(circuits_schema) \
-    .csv(f"{raw_folder_path}/circuits.csv")
+    .csv(f"{raw_folder_path}/{file_date}/circuits.csv")
 
 # COMMAND ----------
 
@@ -153,7 +158,8 @@ circuits_renamed_df = circuits_selected_df.withColumnRenamed("circuitId", "circu
                                             .withColumnRenamed("lat", "latitude") \
                                             .withColumnRenamed("lng", "longtitude") \
                                             .withColumnRenamed("alt", "altitude") \
-                                            .withColumn("data_source", lit(data_source))
+                                            .withColumn("data_source", lit(data_source)) \
+                                            .withColumn("file_date", lit(file_date))
 
 
 # COMMAND ----------
@@ -187,19 +193,45 @@ display(circuits_final_df)
 
 # MAGIC %md
 # MAGIC # Write data to DataLake as Parquet
+# MAGIC - 1st cell save dataframe in the datalake
+# MAGIC - 2nd cell save dataframe in the dalake and create managed table
+
+# COMMAND ----------
+
+# circuits_final_df.write.mode("overwrite") \
+#                         .parquet(f"{processed_folder_path}/circuits")
+
+# COMMAND ----------
+
+# circuits_final_df.write.mode("overwrite") \
+#                        .format("parquet") \
+#                        .saveAsTable("f1_processed.circuits")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC #Write data to Datalake as Delta
 
 # COMMAND ----------
 
 circuits_final_df.write.mode("overwrite") \
-                        .parquet(f"{processed_folder_path}/circuits")
+                       .format("delta") \
+                       .saveAsTable("f1_processed.circuits")
 
 # COMMAND ----------
+
 
 dbutils.fs.ls(f"{processed_folder_path}/circuits")
 
 # COMMAND ----------
 
-display(spark.read.parquet(f"{processed_folder_path}/circuits"))
+# display(spark.read.parquet(f"{processed_folder_path}/circuits"))
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * 
+# MAGIC FROM f1_processed.circuits;
 
 # COMMAND ----------
 
