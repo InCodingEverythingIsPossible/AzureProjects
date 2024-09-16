@@ -1,0 +1,9 @@
+{
+	"name": "databricks-trainingPW-adf",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "7a352174-ad67-453a-97ec-8452699b0dda",
+		"tenantId": "72384d00-35db-45ed-9ece-ae99242282c2"
+	}
+}
