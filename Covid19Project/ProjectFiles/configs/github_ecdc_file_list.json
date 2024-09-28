@@ -1,0 +1,22 @@
+[
+    {
+        "sourceBaseURL":"https://github.com",
+        "sourceRelativeURL":"InCodingEverythingIsPossible/AzureProjects/blob/main/Covid19Project/ProjectFiles/ecdc_data/cases_deaths.csv",
+        "sinkFileName":"cases_deaths.csv"
+    },
+    {
+        "sourceBaseURL":"https://github.com",
+        "sourceRelativeURL":"InCodingEverythingIsPossible/AzureProjects/blob/main/Covid19Project/ProjectFiles/ecdc_data/hospital_admissions.csv",
+        "sinkFileName":"hospital_admissions.csv"
+    },
+    {
+        "sourceBaseURL":"https://github.com",
+        "sourceRelativeURL":"InCodingEverythingIsPossible/AzureProjects/blob/main/Covid19Project/ProjectFiles/ecdc_data/testing.csv",
+        "sinkFileName":"testing.csv"
+    },
+    {
+        "sourceBaseURL":"https://github.com",
+        "sourceRelativeURL":"InCodingEverythingIsPossible/AzureProjects/blob/main/Covid19Project/ProjectFiles/ecdc_data/country_response.csv",
+        "sinkFileName":"country_response.csv"
+    }
+]
